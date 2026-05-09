@@ -5,7 +5,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 SCOPES = [
     'https://www.googleapis.com/auth/documents',
-    'https://www.googleapis.com/auth/spreadsheets'
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/calendar'
 ]
 
 def get_credentials(credentials_path='credentials.json', token_path='token.json'):
