@@ -1,0 +1,12 @@
+from setuptools import setup, find_packages
+
+setup(
+    name='gcp_for_agents',
+    version='0.1.0',
+    packages=find_packages(),
+    install_requires=[
+        'google-api-python-client>=2.0.0',
+        'google-auth-httplib2>=0.1.0',
+        'google-auth-oauthlib>=1.0.0',
+    ],
+)
