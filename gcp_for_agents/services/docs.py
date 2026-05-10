@@ -11,26 +11,81 @@ class DocsClient:
         """Delegate attribute access to the underlying Google API service."""
         return getattr(self.service, name)
 
-    def read(self, document_id: str) -> str:
-        """Reads the content of a document and returns it as a string."""
+    def read(self, document_id: str, markdown: bool = False) -> str:
+        """Reads the content of a document and returns it as a string.
+        If markdown is True, it returns the content with markdown formatting.
+        """
         doc = self.service.documents().get(documentId=document_id).execute()
-        return self._extract_text(doc.get('body', {}).get('content', []))
+        return self._extract_content(doc.get('body', {}).get('content', []), markdown=markdown)
 
-    def _extract_text(self, elements: list) -> str:
+    def _extract_content(self, elements: list, markdown: bool = False) -> str:
         text = ''
         for element in elements:
             if 'paragraph' in element:
-                elements_in_para = element.get('paragraph').get('elements')
+                para = element.get('paragraph')
+                para_style = para.get('paragraphStyle', {})
+                named_style = para_style.get('namedStyleType')
+                
+                para_text = ''
+                elements_in_para = para.get('elements', [])
                 for elem in elements_in_para:
                     if 'textRun' in elem:
-                        text += elem.get('textRun').get('content')
+                        run = elem.get('textRun')
+                        content = run.get('content', '')
+                        style = run.get('textStyle', {})
+                        
+                        if markdown:
+                            stripped_content = content.rstrip('\n\r')
+                            suffix = content[len(stripped_content):]
+                            
+                            if stripped_content:
+                                if style.get('bold'):
+                                    stripped_content = f'**{stripped_content}**'
+                                if style.get('italic'):
+                                    stripped_content = f'*{stripped_content}*'
+                                if style.get('weightedFontFamily', {}).get('fontFamily') == 'Courier New':
+                                    stripped_content = f'`{stripped_content}`'
+                                if 'link' in style:
+                                    url = style.get('link').get('url')
+                                    stripped_content = f'[{stripped_content}]({url})'
+                            
+                            para_text += stripped_content + suffix
+                        else:
+                            para_text += content
+                
+                if markdown and named_style:
+                    if named_style == 'TITLE':
+                        para_text = f'# {para_text}'
+                    elif named_style.startswith('HEADING_'):
+                        try:
+                            level = named_style.split('_')[1]
+                            para_text = f'{"#" * int(level)} {para_text}'
+                        except (IndexError, ValueError):
+                            pass
+                
+                if markdown and 'bullet' in para:
+                    para_text = f'- {para_text}'
+
+                text += para_text
+
             elif 'table' in element:
                 table = element.get('table')
-                for row in table.get('tableRows'):
-                    for cell in row.get('tableCells'):
-                        text += self._extract_text(cell.get('content'))
+                if markdown:
+                    for i, row in enumerate(table.get('tableRows')):
+                        row_text = '|'
+                        for cell in row.get('tableCells'):
+                            cell_content = self._extract_content(cell.get('content'), markdown=True).strip()
+                            row_text += f' {cell_content} |'
+                        text += row_text + '\n'
+                        if i == 0:
+                            num_cells = len(row.get('tableCells'))
+                            text += '|' + ' --- |' * num_cells + '\n'
+                else:
+                    for row in table.get('tableRows'):
+                        for cell in row.get('tableCells'):
+                            text += self._extract_content(cell.get('content'), markdown=False)
             elif 'tableOfContents' in element:
-                text += self._extract_text(element.get('tableOfContents').get('content'))
+                text += self._extract_content(element.get('tableOfContents').get('content'), markdown=markdown)
         return text
 
     def update(self, document_id: str, text: str, append: bool = True, clear: bool = False, markdown: bool = False):
