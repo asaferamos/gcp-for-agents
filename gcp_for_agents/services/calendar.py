@@ -38,27 +38,5 @@ class CalendarClient:
             singleEvents=True,
             orderBy='startTime'
         ).execute()
-        
-        events = events_result.get('items', [])
-        return [self._format_event(event) for event in events]
 
-    def _format_event(self, event):
-        """Formats a Google Calendar event into the desired dictionary structure."""
-        start = event.get('start', {})
-        # date for all-day events, dateTime for regular events
-        event_date = start.get('dateTime') or start.get('date')
-        
-        attendees = []
-        for attendee in event.get('attendees', []):
-            attendees.append({
-                'email': attendee.get('email'),
-                'status': attendee.get('responseStatus')
-            })
-            
-        return {
-            'date': event_date,
-            'name': event.get('summary'),
-            'description': event.get('description'),
-            'attendees': attendees,
-            'related_documents': event.get('attachments', [])
-        }
+        return events_result.get('items', [])
