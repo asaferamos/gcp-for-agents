@@ -6,7 +6,7 @@ This library expects that the application using it already handles the Google OA
 ## Components Implemented
 
 1. **Google Docs Wrapper (`gcp_for_agents.DocsClient`)**: 
-   - `read(document_id)`: Fetches the document and extracts the text (including basic paragraphs and tables).
+   - `read(document_id, markdown=False)`: Fetches the document and extracts the text. If `markdown=True`, returns markdown formatted text (headings, bold, italic, tables, etc.).
    - `update(document_id, text, append=True, clear=False)`: Adds text to the document. It supports deleting the previous content via the `clear=True` flag, and choosing whether to insert at the beginning or append to the end.
 
 2. **Google Sheets Wrapper (`gcp_for_agents.SheetsClient`)**: 
@@ -35,9 +35,13 @@ from gcp_for_agents import DocsClient, SheetsClient, login
 # It uses credentials.json to log in and saves to token.json
 docs = DocsClient(credentials_path="credentials.json", token_path="token.json")
 
-# Read a document
+# Read a document (raw text)
 content = docs.read("1YOUR_DOC_ID_HERE")
 print(content)
+
+# Read a document as Markdown
+markdown_content = docs.read("1YOUR_DOC_ID_HERE", markdown=True)
+print(markdown_content)
 
 # Update a document (clear everything and add new text)
 docs.update("1YOUR_DOC_ID_HERE", "Hello World", clear=True)
